@@ -14,31 +14,81 @@ concurrency:
 
 jobs:
   release:
+    name: Build Windows x64 and publish
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout tag
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+          persist-credentials: false
+
+      - name: Go
+        uses: actions/setup-go@v5
         with:
           go-version: '1.26'
           cache: false
-      - uses: actions/setup-node@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - name: Build and test
         shell: cmd
         run: build.bat --ci
-      - name: Package and checksum
+
+      - name: Verify Windows executable
         shell: pwsh
         run: |
-          Compress-Archive -Path bin/Subscope.exe,LICENSE,THIRD_PARTY.md,README.md -DestinationPath subscope-windows-x64.zip -Force
-          $hash = (Get-FileHash subscope-windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  subscope-windows-x64.zip" | Out-File SHA256SUMS.txt -Encoding ascii
-      - name: Publish release
+          $ErrorActionPreference = 'Stop'
+          $path = 'bin\Subscope.exe'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Subscope.exe missing' }
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $path).Path)
+          if ($bytes.Length -lt 4096 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw 'Invalid executable: missing MZ signature'
+          }
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          if ($peOffset -lt 0x40 -or $peOffset + 6 -ge $bytes.Length) { throw 'Invalid PE header offset' }
+          if ($bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset + 1] -ne 0x45 -or
+              $bytes[$peOffset + 2] -ne 0 -or $bytes[$peOffset + 3] -ne 0) {
+            throw 'Invalid executable: missing PE signature'
+          }
+          if ([BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne 0x8664) {
+            throw 'Invalid executable: expected Windows AMD64'
+          }
+
+      - name: Package and checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Copy-Item 'bin\Subscope.exe' 'release\Subscope.exe' -Force
+          Compress-Archive -Path 'bin\Subscope.exe','README.md','LICENSE','THIRD_PARTY.md' -DestinationPath 'release\Subscope-windows-x64.zip' -Force
+          $assets = @('Subscope.exe', 'Subscope-windows-x64.zip')
+          $lines = foreach ($asset in $assets) {
+            $sha = (Get-FileHash -LiteralPath "release\$asset" -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$sha  $asset"
+          }
+          $lines | Set-Content -LiteralPath 'release\SHA256SUMS.txt' -Encoding ascii
+
+      - name: Publish GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" subscope-windows-x64.zip SHA256SUMS.txt --verify-tag --title "Subscope ${{ github.ref_name }}" --notes-file RELEASE_NOTES.md
+          $ErrorActionPreference = 'Stop'
+          $assets = @('release\Subscope.exe', 'release\Subscope-windows-x64.zip', 'release\SHA256SUMS.txt')
+          $PSNativeCommandUseErrorActionPreference = $false
+          gh release view "$env:RELEASE_TAG" --json id --jq '.id' 2>$null | Out-Null
+          $exists = ($LASTEXITCODE -eq 0)
+          if ($exists) {
+            gh release upload "$env:RELEASE_TAG" @assets --clobber
+          } else {
+            gh release create "$env:RELEASE_TAG" @assets --verify-tag --title "Subscope $env:RELEASE_TAG" --notes-file RELEASE_NOTES.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release upload failed' }
