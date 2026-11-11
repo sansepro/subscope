@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 const base = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, base), 'utf8');
 
@@ -32,11 +32,14 @@ test('release metadata and local build artifacts are ready', () => {
   assert.match(read('../README.md'), /build\.bat/);
   assert.match(read('../README.md'), /Windows 10\/11/);
   assert.match(read('../.gitignore'), /rsrc_windows/);
-  assert.match(read('../.github/workflows/ci.yml'), /windows-latest/);
-  assert.match(read('../.github/workflows/release.yml'), /tags:/);
+  const workflows = readdirSync(new URL('../.github/workflows/', base)).filter(x => /\.ya?ml$/.test(x));
+  assert.deepEqual(workflows, ['release.yml']);
+  const workflow = read('../.github/workflows/release.yml');
+  assert.match(workflow, /^on:\s*\n\s*push:\s*\n\s*tags:\s*\n\s*- ['\"]?v\*/m);
+  assert.doesNotMatch(workflow, /^\s*(branches|pull_request|workflow_dispatch|schedule):/m);
   assert.match(read('../build.bat'), /npm run build/);
   assert.match(read('../build.bat'), /check:assets/);
-  assert.match(read('package.json'), /"version": "2\.8\.0"/);
+  assert.match(read('package.json'), /"version": "2\.9\.1"/);
 });
 
 test('removed unused legacy node/modal/registry styles', () => {

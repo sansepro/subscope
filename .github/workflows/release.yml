@@ -67,8 +67,21 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path release -Force | Out-Null
-          Copy-Item 'bin\Subscope.exe' 'release\Subscope.exe' -Force
-          Compress-Archive -Path 'bin\Subscope.exe','README.md','LICENSE','THIRD_PARTY.md' -DestinationPath 'release\Subscope-windows-x64.zip' -Force
+          Copy-Item -LiteralPath 'bin\Subscope.exe' -Destination 'release\Subscope.exe' -Force
+
+          # Only the executable is required. Include documentation if present.
+          $stage = Join-Path $env:RUNNER_TEMP 'subscope-release-stage'
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          try {
+            Copy-Item -LiteralPath 'bin\Subscope.exe' -Destination (Join-Path $stage 'Subscope.exe') -Force
+            Get-ChildItem -LiteralPath '.' -File |
+              Where-Object { $_.Extension -ieq '.md' -or $_.Name -match '^(LICENSE|COPYING|NOTICE)(\..+)?$' } |
+              ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $stage $_.Name) -Force }
+            $inputs = @(Get-ChildItem -LiteralPath $stage -File | ForEach-Object { $_.FullName })
+            Compress-Archive -LiteralPath $inputs -DestinationPath 'release\Subscope-windows-x64.zip' -Force
+          } finally {
+            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+          }
           $assets = @('Subscope.exe', 'Subscope-windows-x64.zip')
           $lines = foreach ($asset in $assets) {
             $sha = (Get-FileHash -LiteralPath "release\$asset" -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -89,6 +102,6 @@ jobs:
           if ($exists) {
             gh release upload "$env:RELEASE_TAG" @assets --clobber
           } else {
-            gh release create "$env:RELEASE_TAG" @assets --verify-tag --title "Subscope $env:RELEASE_TAG" --notes-file RELEASE_NOTES.md
+            gh release create "$env:RELEASE_TAG" @assets --verify-tag --title "Subscope $env:RELEASE_TAG" --generate-notes
           }
           if ($LASTEXITCODE -ne 0) { throw 'GitHub Release upload failed' }
