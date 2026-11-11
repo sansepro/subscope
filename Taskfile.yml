@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build Windows Subscope.exe (frontend/dist is created by build.bat)
+    cmds:
+      - cmd: go build -trimpath -tags production -ldflags="-s -w -H windowsgui" -o bin/Subscope.exe .
+    env:
+      GOOS: windows
+      GOARCH: amd64
+      CGO_ENABLED: '0'

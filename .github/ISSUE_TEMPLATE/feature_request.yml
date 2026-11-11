@@ -1,0 +1,9 @@
+name: Функция
+description: Предложение
+body:
+  - type: textarea
+    id: feature
+    attributes:
+      label: Функция
+    validations:
+      required: true

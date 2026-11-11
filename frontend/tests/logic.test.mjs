@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseSubscription,analyze,compareReports,rescore,registrable,extendedMetrics} from '../src/lib/core.mjs';
+import {createHeaders, normalizeSettings} from '../src/lib/settings.mjs';
+const sample = (key,host='node.example.com') => `vless://${key}@${host}:443?security=reality&type=tcp&sni=${host}#test`;
+const a='11111111-1111-4111-8111-111111111111';
+const b='22222222-2222-4222-8222-222222222222';
+test('VLESS and duplicates',()=>{const parsed=parseSubscription([sample(a),sample(a),sample(b)].join('\n'));const report=analyze(parsed);assert.equal(report.stats.records,3);assert.equal(report.stats.uniqueNodes,2);assert.equal(report.stats.duplicateRecords,1);});
+test('subscription overlap',()=>{const ra=analyze(parseSubscription(sample(a)));const rb=analyze(parseSubscription(sample(a)));const out=compareReports(ra,rb);assert.equal(out.overlap.nodes,1);assert.equal(out.similarity.total,100);});
+test('multi-source score updates',()=>{const report=analyze(parseSubscription(sample(a,'a.example.com')+'\n'+sample(b,'b.other.net')));assert.ok(report.score.total>=0&&report.score.total<=100);rescore(report,{ips:{},hosts:{}});assert.ok(report.score.total<=100);assert.ok(extendedMetrics(report).uniqueNodes===2);});
+test('Happ headers preserved',()=>{const headers=createHeaders(normalizeSettings({hwid:'dev-123',userAgent:'Happ/19.19.19/Windows/2604171131603'}));assert.equal(headers['X-Hwid'],'dev-123');assert.equal(headers['User-Agent'],'Happ/19.19.19/Windows/2604171131603');assert.equal(headers['X-Device-Os'],'Windows');});

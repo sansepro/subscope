@@ -1,0 +1,9 @@
+* text=auto
+*.bat text eol=crlf
+*.go text eol=lf
+*.mjs text eol=lf
+*.svelte text eol=lf
+*.yml text eol=lf
+*.png binary
+*.ico binary
+*.zip binary

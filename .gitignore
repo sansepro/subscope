@@ -1,0 +1,30 @@
+# Build
+/bin/
+/frontend/dist/
+/frontend/node_modules/
+/frontend/.svelte-kit/
+/rsrc_windows_*.syso
+/*.exe
+/*.test
+*.log
+*.tmp
+*.bak
+
+# Secrets / local files
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local sample subscriptions
+/t1.json
+*.subscription
+*.sub.txt

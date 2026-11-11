@@ -1,0 +1,27 @@
+name: Ошибка
+description: Ошибка приложения
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Версия
+      placeholder: '2.8.0'
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Windows
+      options: ['10', '11']
+  - type: textarea
+    id: steps
+    attributes:
+      label: Действия
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Результат
+    validations:
+      required: true
