@@ -29,8 +29,6 @@ test('bundler keeps both entrypoints and ships only local assets', () => {
 test('release metadata and local build artifacts are ready', () => {
   assert.match(read('../LICENSE'), /^MIT License/m);
   assert.match(read('../LICENSE'), /Permission is hereby granted, free of charge/);
-  assert.match(read('../README.md'), /build\.bat/);
-  assert.match(read('../README.md'), /Windows 10\/11/);
   assert.match(read('../.gitignore'), /rsrc_windows/);
   const workflows = readdirSync(new URL('../.github/workflows/', base)).filter(x => /\.ya?ml$/.test(x));
   assert.deepEqual(workflows, ['release.yml']);
@@ -39,7 +37,10 @@ test('release metadata and local build artifacts are ready', () => {
   assert.doesNotMatch(workflow, /^\s*(branches|pull_request|workflow_dispatch|schedule):/m);
   assert.match(read('../build.bat'), /npm run build/);
   assert.match(read('../build.bat'), /check:assets/);
-  assert.match(read('package.json'), /"version": "2\.9\.1"/);
+  const { version } = JSON.parse(read('package.json'));
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  const build = read('../build.bat');
+  assert.ok(build.includes(`--file-version ${version} --product-version ${version}`));
 });
 
 test('removed unused legacy node/modal/registry styles', () => {

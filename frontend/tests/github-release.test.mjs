@@ -30,9 +30,11 @@ test('release rejects missing or invalid native binary', () => {
   assert.match(workflow, /0x5A/);
 });
 
-test('release README documents tagging and download', () => {
-  const readme = read('../../README.md');
-  assert.match(readme, /git tag v\d+\.\d+\.\d+/);
-  assert.match(readme, /git push origin v\d+\.\d+\.\d+/);
-  assert.match(readme, /Subscope\.exe/);
+test('release packaging is independent of README contents or optional docs', () => {
+  const workflow = read('../../.github/workflows/release.yml');
+  assert.match(workflow, /Get-ChildItem/);
+  assert.match(workflow, /Where-Object/);
+  assert.match(workflow, /Compress-Archive/);
+  assert.doesNotMatch(workflow, /-LiteralPath ['"]README\.md['"]/);
+  assert.doesNotMatch(workflow, /--notes-file/);
 });

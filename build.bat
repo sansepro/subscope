@@ -54,7 +54,7 @@ if errorlevel 1 (
   call go install github.com/tc-hib/go-winres@v0.3.3
   if errorlevel 1 goto :fail
 )
-call go-winres simply --icon "build\appicon.png" --manifest gui --arch amd64 --out rsrc --file-description "Subscope Desktop" --product-name "Subscope" --file-version 2.9.1 --product-version 2.9.1
+call go-winres simply --icon "build\appicon.png" --manifest gui --arch amd64 --out rsrc --file-description "Subscope Desktop" --product-name "Subscope" --file-version 2.9.2 --product-version 2.9.2
 if errorlevel 1 goto :fail
 if not exist "rsrc_windows_amd64.syso" goto :fail
 

@@ -56,10 +56,10 @@ wails3 build
 
 ```bash
 git add .
-git commit -m "Release 2.9.1"
+git commit -m "Release 2.9.2"
 git push origin main
-git tag v2.9.1
-git push origin v2.9.1
+git tag v2.9.2
+git push origin v2.9.2
 ```
 
 - Workflow: `.github/workflows/release.yml`.
