@@ -52,11 +52,35 @@ wails3 build
 
 Иконка Windows: `build/appicon.png` · `build/icon.ico`. `build.bat` генерирует ресурс EXE.
 
-## Релизы
+## GitHub Releases
 
-- Сборка CI: `.github/workflows/ci.yml`.
-- Теги: `v*` · Windows x64 ZIP · SHA-256.
-- Скрипт сборки: `build.bat --ci`.
+```bash
+git add .
+git commit -m "Release 2.9.1"
+git push origin main
+git tag v2.9.1
+git push origin v2.9.1
+```
+
+- Workflow: `.github/workflows/release.yml`.
+- Триггер: `v*`.
+- Платформа: Windows x64.
+- Сборка: `build.bat --ci`.
+- Файлы: `Subscope.exe`, `Subscope-windows-x64.zip`, `SHA256SUMS.txt`.
+- Повторный запуск: обновление файлов Release.
+- Запуск: только push тега `v*`.
+- Push в ветки / Pull Request: без Actions.
+- Архив: EXE + присутствующие `.md`, `LICENSE`, `COPYING`, `NOTICE`.
+- Отсутствие документации не прерывает сборку.
+- Описание релиза: GitHub auto notes.
+
+
+## Удаление старого CI
+
+```bash
+git rm --ignore-unmatch .github/workflows/ci.yml
+git add -A
+```
 
 ## Зависимости
 
